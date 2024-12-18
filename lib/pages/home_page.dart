@@ -1,10 +1,9 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, unused_field, sort_child_properties_last
+// ignore_for_file: prefer_const_constructors, unused_field
 
 import 'package:flutter/material.dart';
-import 'package:flutterapp/data/database.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import '../util/dialog_box.dart';
-import '../util/todo_tile.dart';
+import 'package:flutterapp/components/bottom_nav_bar.dart';
+import 'package:flutterapp/pages/cart_page.dart';
+import 'package:flutterapp/pages/shop_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,108 +13,134 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // reference the hive box
-  final _myBox = Hive.box('mybox');
-  ToDoDataBase db = ToDoDataBase();
+  // this selected index is to control the bottom navbar
+  int _selectedIndex = 0;
 
-  @override
-  void initState() {
-    // if this is first time opening the app and create default data
-    if (_myBox.get("TODOLIST") == null) {
-      db.createInitialData();
-    } else {
-      // there are already exists data
-      db.loadData();
-    }
-
-    super.initState();
-  }
-
-  // text controller
-  final _controller = TextEditingController();
-
-  // checkbox was tapped
-  void checkBoxChanged(bool? value, int index) {
+  // method to update selected index
+  // when the user taps on the bottombar
+  void navigateBottomBar(int index) {
     setState(() {
-      db.toDoList[index][1] = !db.toDoList[index][1];
+      _selectedIndex = index;
     });
-    db.updateDataBase();
   }
 
-  // save new task
-  void saveNewTask() {
-    setState(() {
-      db.toDoList.add([_controller.text, false]);
-      _controller.clear();
-    });
-    Navigator.of(context).pop();
-    db.updateDataBase();
-  }
+  // pages to display
+  final List<Widget> _pages = [
+    // shop page
+    const ShopPage(),
 
-  // create a new task
-  void createNewTask() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return DialogBox(
-          controller: _controller,
-          onSave: saveNewTask,
-          onCancel: () => Navigator.of(context).pop(),
-        );
-      },
-    );
-  }
-
-  // delete task
-  void deleteTask(int index) {
-    setState(() {
-      db.toDoList.removeAt(index);
-    });
-    db.updateDataBase();
-  }
+    // cart page
+    const CartPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.yellow[200],
+      backgroundColor: Colors.grey[300],
+      bottomNavigationBar: MyBottomNavBar(
+        onTabChange: (index) => navigateBottomBar(index),
+      ),
       appBar: AppBar(
-        backgroundColor: Colors.yellow,
-        title: Text("TO DO"),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Padding(
+              padding: EdgeInsets.only(left: 12.0),
+              child: Icon(
+                Icons.menu,
+                color: Colors.black,
+              ),
+            ),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: createNewTask,
-        child: Icon(Icons.add),
-        backgroundColor: Colors.yellow,
-        shape: CircleBorder(), // Ensures full-rounded shape
-        elevation: 0, // Removes the shadow
-        highlightElevation: 0, // Removes shadow on press
+      drawer: Drawer(
+        backgroundColor: Colors.grey[900],
+        shape: RoundedRectangleBorder(
+          // Set the shape to a square (no rounded corners)
+          borderRadius: BorderRadius.zero, // Removes the rounded corners
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              children: [
+                // logo
+                Container(
+                  padding: EdgeInsets.only(
+                    top: 120,
+                    bottom: 25,
+                  ),
+                  child: Image.asset(
+                    'lib/images/nike-logo.png',
+                    color: Colors.white,
+                    width: 120,
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child: Divider(
+                    color: Colors.grey[800],
+                  ),
+                ),
+
+                // other pages
+                const Padding(
+                  padding: EdgeInsets.only(left: 25.0),
+                  child: ListTile(
+                      leading: Icon(
+                        Icons.home,
+                        color: Colors.white,
+                      ),
+                      title: Text(
+                        'Home',
+                        style: TextStyle(
+                          color: Colors.white,
+                        ),
+                      )),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(left: 25.0),
+                  child: ListTile(
+                      leading: Icon(
+                        Icons.info,
+                        color: Colors.white,
+                      ),
+                      title: Text(
+                        'About',
+                        style: TextStyle(
+                          color: Colors.white,
+                        ),
+                      )),
+                ),
+              ],
+            ),
+            const Padding(
+              padding: EdgeInsets.only(
+                left: 25.0,
+                bottom: 25,
+              ),
+              child: ListTile(
+                  leading: Icon(
+                    Icons.logout,
+                    color: Colors.white,
+                  ),
+                  title: Text(
+                    'Logout',
+                    style: TextStyle(
+                      color: Colors.white,
+                    ),
+                  )),
+            ),
+          ],
+        ),
       ),
-      // body: ListView(
-      //   children: [
-      //     ToDoTile(
-      //       taskName: "Make Tutorial",
-      //       taskCompleted: true,
-      //       onChanged: (p0) {},
-      //     ),
-      //     ToDoTile(
-      //       taskName: "Do Exercise",
-      //       taskCompleted: false,
-      //       onChanged: (p0) {},
-      //     ),
-      //   ],
-      // ),
-      body: ListView.builder(
-        itemCount: db.toDoList.length,
-        itemBuilder: (context, index) {
-          return ToDoTile(
-            taskName: db.toDoList[index][0],
-            taskCompleted: db.toDoList[index][1],
-            onChanged: (value) => checkBoxChanged(value, index),
-            deleteFunction: (context) => deleteTask(index),
-          );
-        },
-      ),
+      body: _pages[_selectedIndex],
     );
   }
 }
